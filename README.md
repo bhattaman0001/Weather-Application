@@ -10,5 +10,5 @@
 ### - Must provide location permission to use the app
 ### - Provide internet connection to get latest data
 ## 5. ScreenShot
-![Image 1](image1.jpg)
-![Image 2](image2.jpg)
+![Image 1](https://github.com/bhattaman0001/power_house_ai/blob/develop/app/src/main/res/drawable/image1.jpg)
+![Image 2](https://github.com/bhattaman0001/power_house_ai/blob/develop/app/src/main/res/drawable/image2.jpg)
