@@ -1,97 +1,159 @@
 package com.example.weatherapp
 
-import android.Manifest
-import android.annotation.SuppressLint
-import android.app.ProgressDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
+import android.graphics.PorterDuff
 import android.location.LocationManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.view.Menu
 import android.view.View
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.graphics.drawable.DrawerArrowDrawable
+import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.core.content.ContextCompat
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.drawerlayout.widget.DrawerLayout.SimpleDrawerListener
 import com.example.weatherapp.databinding.ActivityMainBinding
-import com.example.weatherapp.network.WeatherModel
 import com.example.weatherapp.presenter.MainInterface
 import com.example.weatherapp.presenter.MainPresenter
-import com.example.weatherapp.presenter.Utils
-import com.example.weatherapp.view.adapter.CityWeatherAdapter
-import com.example.weatherapp.view.adapter.HourWeatherAdapter
-import com.google.gson.Gson
+import com.example.weatherapp.presenter.Utils.CURRENT_CITY
+import com.example.weatherapp.presenter.Utils.LATEST_CURRENT_HOUR_WEATHER_DATA
+import com.example.weatherapp.presenter.Utils.LATEST_CURRENT_WEATHER_DATA
+import com.example.weatherapp.presenter.Utils.REQUEST_LOCATION
+import com.example.weatherapp.presenter.Utils.WEATHER_DATA
+import com.example.weatherapp.presenter.Utils.isNetworkAvailable
+import com.example.weatherapp.presenter.Utils.sharedPreferences
+import com.example.weatherapp.view.adapter.WeatherAdapter
+import com.google.android.material.navigation.NavigationView
 import com.google.gson.JsonObject
-import com.google.gson.reflect.TypeToken
-import com.squareup.picasso.Picasso
-import kotlin.math.ceil
+import com.google.gson.JsonParser
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity(), MainInterface {
 
-
     private var latitude: String? = null
+    private val scale = 0.5f
     private var longitude: String? = null
     private var locationManager: LocationManager? = null
-    private var binding: ActivityMainBinding? = null
+    private lateinit var binding: ActivityMainBinding
+    private var mainPresenter: MainPresenter? = null
+    private var drawerLayout: DrawerLayout? = null
+    private var navigationView: NavigationView? = null
+    private var toolbar: Toolbar? = null
+    private var labelView: TextView? = null
+    private var contentView: LinearLayout? = null
+    private lateinit var weatherAdapter: WeatherAdapter
     private var weatherData: JsonObject? = null
     private var hourWeatherData: JsonObject? = null
-    private var hourWeatherModelArrayList: ArrayList<WeatherModel>? = null
-    private var cityWeatherModelArrayList: ArrayList<WeatherModel>? = null
-    private var latestUpdated: String? = null
-    private var progressDialog: ProgressDialog? = null
-    private var mainPresenter: MainPresenter? = null
-
-
-
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding!!.root)
+        setContentView(binding.root)
 
+        drawerLayout = binding.drawerLayout
+        navigationView = binding.navigationView
+        toolbar = binding.toolbar
+        contentView = binding.content
+        sharedPreferences = applicationContext.getSharedPreferences(WEATHER_DATA, MODE_PRIVATE)
 
+        weatherAdapter = WeatherAdapter(this)
+        weatherAdapter.bind(binding.cardView)
+
+        setSupportActionBar(toolbar)
+
+        val toggle = ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.nav_open, R.string.nav_close)
+
+        drawerLayout?.addDrawerListener(toggle)
+        toggle.syncState()
+
+        toolbar?.navigationIcon = DrawerArrowDrawable(this)
+        toolbar?.setNavigationOnClickListener {
+            if (navigationView?.let { drawerLayout?.isDrawerOpen(it) } == true) {
+                navigationView?.let { drawerLayout?.closeDrawer(it) }
+            } else {
+                navigationView?.let { drawerLayout?.openDrawer(it) }
+            }
+        }
+
+        drawerLayout?.setScrimColor(Color.TRANSPARENT)
+        drawerLayout?.addDrawerListener(object : SimpleDrawerListener() {
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+                labelView?.visibility = if (slideOffset > 0) View.VISIBLE else View.GONE
+                val diffScaledOffset: Float = slideOffset * (1 - scale)
+                val offsetScale = 1 - diffScaledOffset
+                contentView?.scaleX = offsetScale
+                contentView?.scaleY = offsetScale
+                val xOffset = drawerView.width * slideOffset
+                val xOffsetDiff: Float = contentView!!.width * diffScaledOffset / 2
+                val xTranslation = xOffset - xOffsetDiff
+                contentView?.translationX = xTranslation
+            }
+
+            override fun onDrawerClosed(drawerView: View) {
+                labelView?.visibility = View.GONE
+            }
+        })
 
         mainPresenter = MainPresenter(this)
-        progressDialog = ProgressDialog(this, R.style.CustomProgressDialog)
-        progressDialog!!.window!!.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), REQUEST_LOCATION)
-        val gson = Gson()
-        weatherData = gson.fromJson(getSharedPreferences(WEATHER_DATA, MODE_PRIVATE).getString(LATEST_CURRENT_WEATHER_DATA, null), JsonObject::class.java)
-        latestUpdated = getSharedPreferences(WEATHER_DATA, MODE_PRIVATE).getString(LATEST_CURRENT_WEATHER_DATA, null)
-        val type = object : TypeToken<ArrayList<WeatherModel?>?>() {}.type
-        hourWeatherModelArrayList = gson.fromJson(getSharedPreferences(WEATHER_DATA, MODE_PRIVATE).getString(LATEST_HOUR_WEATHER_DATA, null), type)
-        cityWeatherModelArrayList = gson.fromJson(getSharedPreferences(WEATHER_DATA, MODE_PRIVATE).getString(LATEST_CITIES_WEATHER_DATA, null), type)
-        if (cityWeatherModelArrayList == null) cityWeatherModelArrayList = ArrayList()
-        if (hourWeatherModelArrayList == null) hourWeatherModelArrayList = ArrayList()
-        if (latestUpdated == null) latestUpdated = "Latest update: ..."
-        if (!Utils.isNetworkAvailable(this)) {
-            if (weatherData != null) loadUI()
-        } else {
-            cityWeatherModelArrayList = ArrayList()
-            hourWeatherModelArrayList = ArrayList()
-            loadData()
+    }
+
+    private fun jsonStringToJsonObject(jsonString: String?): JsonObject? {
+        if (jsonString.isNullOrEmpty()) {
+            return null
         }
-        binding!!.btnGet.setOnClickListener {
-            if (Utils.isNetworkAvailable(applicationContext)) loadData() else Toast.makeText(
-                applicationContext, "No internet connection", Toast.LENGTH_LONG
-            ).show()
+        return try {
+            JsonParser.parseString(jsonString).asJsonObject
+        } catch (e: IllegalStateException) {
+            null
         }
     }
 
     override fun onResume() {
         super.onResume()
-        if (Utils.isNetworkAvailable(applicationContext)) loadData()
+
+        CoroutineScope(Dispatchers.Main).launch {
+            if (isNetworkAvailable(this@MainActivity)) loadData()
+            else {
+                weatherData = jsonStringToJsonObject(sharedPreferences.getString(LATEST_CURRENT_WEATHER_DATA, ""))
+                hourWeatherData = jsonStringToJsonObject(sharedPreferences.getString(LATEST_CURRENT_HOUR_WEATHER_DATA, ""))
+                if (weatherData != null && hourWeatherData != null) weatherData?.let { hourWeatherData?.let { it1 -> weatherAdapter.updateData(it, it1) } }
+                else Toast.makeText(this@MainActivity, "No Internet", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        val connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+        connectivityManager.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                super.onAvailable(network)
+                loadData()
+            }
+
+            override fun onLost(network: Network) {
+                super.onLost(network)
+                Toast.makeText(this@MainActivity, "No Internet", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 
     private fun loadData() {
-        progressDialog!!.show()
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
-        if (!locationManager!!.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+        if (locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == false) {
             onGPS()
         } else {
             location
@@ -100,8 +162,15 @@ class MainActivity : AppCompatActivity(), MainInterface {
 
     private fun onGPS() {
         val builder = AlertDialog.Builder(this)
-        builder.setMessage("Enable GPS").setCancelable(false).setPositiveButton("Yes") { dialog, which -> startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)) }
-            .setNegativeButton("No") { dialog, which -> dialog.cancel() }
+        builder
+            .setMessage("Enable GPS")
+            .setCancelable(false)
+            .setPositiveButton("Yes") { dialog, which ->
+                startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+            }
+            .setNegativeButton("No") { dialog, which ->
+                dialog.cancel()
+            }
         val alertDialog = builder.create()
         alertDialog.show()
     }
@@ -109,126 +178,74 @@ class MainActivity : AppCompatActivity(), MainInterface {
     private val location: Unit
         get() {
             if (ActivityCompat.checkSelfPermission(
-                    this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION
+                    this@MainActivity, android.Manifest.permission.ACCESS_FINE_LOCATION
                 ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                    this@MainActivity, Manifest.permission.ACCESS_COARSE_LOCATION
+                    this@MainActivity, android.Manifest.permission.ACCESS_COARSE_LOCATION
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
-                binding!!.main.visibility = View.GONE
-                binding!!.allowPermission.visibility = View.VISIBLE
-                progressDialog!!.dismiss()
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), REQUEST_LOCATION)
+                ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION), REQUEST_LOCATION)
             } else {
-                binding!!.main.visibility = View.VISIBLE
-                binding!!.allowPermission.visibility = View.GONE
-                val locationGPS = locationManager!!.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                val locationGPS = locationManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
                 if (locationGPS != null) {
                     val lat = locationGPS.latitude
                     val lon = locationGPS.longitude
                     latitude = lat.toString()
                     longitude = lon.toString()
-                    mainPresenter!!.getCurrentWeather(latitude, longitude)
+                    mainPresenter?.getCurrentWeather(latitude, longitude)
                 } else {
-                    progressDialog!!.dismiss()
+                    // network not available
+                    Toast.makeText(this, "No Internet", Toast.LENGTH_SHORT).show()
                 }
             }
         }
 
     override fun onGetCurrentWeatherSuccess(weatherData: JsonObject?) {
-        this.weatherData = weatherData
-        val gson = Gson()
-        val jsonString = gson.toJson(this.weatherData)
-        val sharedPreferences = applicationContext.getSharedPreferences(WEATHER_DATA, MODE_PRIVATE)
         val editor = sharedPreferences.edit()
-        editor.putString(LATEST_CURRENT_WEATHER_DATA, jsonString)
+        editor.putString(CURRENT_CITY, weatherData?.get("name")?.asString)
         editor.apply()
-        mainPresenter!!.getHourWeather(latitude, longitude)
+        mainPresenter?.getHourWeather(weatherData, latitude, longitude)
     }
 
-    override fun onGetHourWeatherSuccess(hourWeatherData: JsonObject?) {
-        this.hourWeatherData = hourWeatherData
-        hourWeatherModelArrayList = this.hourWeatherData?.let { mainPresenter!!.createHourWeatherList(it) }
-        val gson = Gson()
-        val json = gson.toJson(hourWeatherModelArrayList)
-        val sharedPreferences = getSharedPreferences(WEATHER_DATA, MODE_PRIVATE)
-        val editor = sharedPreferences.edit()
-        editor.putString(LATEST_HOUR_WEATHER_DATA, json)
-        editor.apply()
-        for (city in cities) {
-            mainPresenter!!.getCityWeather(city)
-        }
-        loadUI()
-    }
+    override fun onGetHourWeatherSuccess(weatherData: JsonObject?, hourWeatherData: JsonObject?) {
 
-    override fun setCurrentCity(currentCity: WeatherModel?) {
-        var isExists = false
-        if (cityWeatherModelArrayList!!.size > 0) for (weatherModel in cityWeatherModelArrayList!!) {
-            if (weatherModel.time == currentCity?.time) {
-                isExists = true
-                break
+        val editor = sharedPreferences.edit()
+        editor.putString(LATEST_CURRENT_WEATHER_DATA, weatherData.toString())
+        editor.putString(LATEST_CURRENT_HOUR_WEATHER_DATA, hourWeatherData.toString())
+        editor.apply()
+
+        weatherData?.let { hourWeatherData?.let { it1 -> weatherAdapter.updateData(it, it1) } }
+        navigationView?.setNavigationItemSelectedListener { menuItem ->
+            var city = menuItem.toString()
+            when (city) {
+                "Home" -> {
+                    city = sharedPreferences.getString(CURRENT_CITY, "").toString()
+                    mainPresenter?.getCityWeather(city)
+                }
+
+                "Developer" -> {
+                    val uri = Uri.parse("https://www.linkedin.com/in/iamamanbhatt/")
+                    val intent = Intent(Intent.ACTION_VIEW, uri)
+                    startActivity(intent)
+                }
+
+                "Apk" -> {
+                    val uri = Uri.parse("https://drive.google.com/file/d/1PEjGMiF1icWnSzW6TK1Pdi3OoMSLadwU/view?usp=sharing.example.com")
+                    val intent = Intent(Intent.ACTION_VIEW, uri)
+                    startActivity(intent)
+                }
+
+                else -> {
+                    mainPresenter?.getCityWeather(city)
+                }
             }
+            drawerLayout?.closeDrawer(GravityCompat.START)
+            true
         }
-        if (!isExists) currentCity?.let { cityWeatherModelArrayList!!.add(it) }
     }
 
-    @SuppressLint("SetTextI18n")
-    private fun loadUI() {
-        val iconUrl = "http://openweathermap.org/img/w/" + weatherData!!["weather"].asJsonArray[0].asJsonObject["icon"].asString + ".png"
-        Picasso.get().load(iconUrl).into(binding!!.imgIcon)
-        val location = weatherData!!["name"].asString + ", " + weatherData!!["sys"].asJsonObject["country"].asString
-        val mainWeather = weatherData!!["weather"].asJsonArray[0].asJsonObject["main"].asString
-        val subWeather = weatherData!!["weather"].asJsonArray[0].asJsonObject["description"].asString
-        val temp = ceil(weatherData!!["main"].asJsonObject["temp"].asFloat - 272.15).toString() + "\u00B0" + "C"
-        val feel = "Feels like " + ceil(weatherData!!["main"].asJsonObject["feels_like"].asFloat - 272.15) + "\u00B0" + "C"
-        val max = "Max: " + ceil((if (weatherData!!["main"].asJsonObject["temp_max"] == null) 0 else weatherData!!["main"].asJsonObject["temp_max"].asFloat - 272.15) as Double) + "\u00B0" + "C"
-        val min = "Min: " + ceil((if (weatherData!!["main"].asJsonObject["temp_min"] == null) 0 else weatherData!!["main"].asJsonObject["temp_min"].asFloat - 272.15) as Double) + "\u00B0" + "C"
-        val wind = "Wind: " + ceil((if (weatherData!!["wind"].asJsonObject["speed"] == null) 0 else weatherData!!["wind"].asJsonObject["speed"].asFloat * 3.6) as Double) + "km/h"
-        val humidity = "Humidity: " + (if (weatherData!!["main"].asJsonObject["humidity"] == null) "" else weatherData!!["main"].asJsonObject["humidity"].asString) + "%"
-        val visibility = "Visibility: " + (if (weatherData!!["visibility"] == null) 0 else weatherData!!["visibility"].asInt / 1000) + "km"
-        val pressure = "Pressure: " + (if (weatherData!!["main"].asJsonObject["humidity"] == null) "" else weatherData!!["main"].asJsonObject["humidity"].asString) + "hPa"
-        val seaLevel = "Sea: " + (if (weatherData!!["main"].asJsonObject["sea_level"] == null) "" else weatherData!!["main"].asJsonObject["sea_level"].asString) + "hPa"
-        val groundLevel = "Ground: " + (if (weatherData!!["main"].asJsonObject["grnd_level"] == null) "" else weatherData!!["main"].asJsonObject["grnd_level"].asString) + "hPa"
-        binding!!.tvLocation.text = location
-        binding!!.tvMainWeather.text = mainWeather
-        binding!!.tvSubWeather.text = subWeather
-        binding!!.tvTemp.text = temp
-        binding!!.tvFeel.text = feel
-        binding!!.tvMax.text = max
-        binding!!.tvMin.text = min
-        binding!!.tvWind.text = wind
-        binding!!.tvHumidity.text = humidity
-        binding!!.tvVisibility.text = visibility
-        binding!!.tvPressure.text = pressure
-        binding!!.tvSeaLevel.text = seaLevel
-        binding!!.tvGroundLevel.text = groundLevel
-        val hourWeatherAdapter = hourWeatherModelArrayList?.let { HourWeatherAdapter(it) }
-        val layoutManager: RecyclerView.LayoutManager = LinearLayoutManager(applicationContext, RecyclerView.HORIZONTAL, false)
-        binding!!.rvHourWeather.layoutManager = layoutManager
-        binding!!.rvHourWeather.adapter = hourWeatherAdapter
-        val gson = Gson()
-        val json = gson.toJson(cityWeatherModelArrayList)
-        val sharedPreferences = getSharedPreferences(WEATHER_DATA, MODE_PRIVATE)
-        val editor = sharedPreferences.edit()
-        editor.putString(LATEST_CITIES_WEATHER_DATA, json)
-        editor.apply()
-        val cityWeatherAdapter = cityWeatherModelArrayList?.let { CityWeatherAdapter(it) }
-        val layoutManager1: RecyclerView.LayoutManager = LinearLayoutManager(applicationContext, RecyclerView.VERTICAL, false)
-        binding!!.rvCity.layoutManager = layoutManager1
-        binding!!.rvCity.adapter = cityWeatherAdapter
-        latestUpdated = "Latest update: " + Utils.currentDateTimeFormatted
-        editor.putString(LATEST_TIME_UPDATE, latestUpdated)
-        editor.apply()
-        binding!!.tvLatest.text = latestUpdated
-        if (Utils.isNetworkAvailable(this)) progressDialog!!.dismiss()
-    }
-
-    companion object {
-        private const val REQUEST_LOCATION = 1
-        private val cities = arrayOf("New York", "Singapore", "Mumbai", "Delhi", "Sydney", "Melbourne")
-        private const val WEATHER_DATA = "WEATHER_DATA"
-        private const val LATEST_CURRENT_WEATHER_DATA = "LATEST_CURRENT_WEATHER_DATA"
-        private const val LATEST_HOUR_WEATHER_DATA = "LATEST_HOUR_WEATHER_DATA"
-        private const val LATEST_CITIES_WEATHER_DATA = "LATEST_CITIES_WEATHER_DATA"
-        private const val LATEST_TIME_UPDATE = "LATEST_TIME_UPDATE"
+    override fun setCurrentCity(weatherData: JsonObject?) {
+        val longitude = weatherData?.get("coord")?.asJsonObject?.get("lon")?.asString
+        val latitude = weatherData?.get("coord")?.asJsonObject?.get("lat")?.asString
+        mainPresenter?.getHourWeather(weatherData, latitude, longitude)
     }
 }

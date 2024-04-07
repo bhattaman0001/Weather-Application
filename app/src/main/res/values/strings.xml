@@ -1,3 +1,22 @@
 <resources>
     <string name="app_name">WeatherApp</string>
+    <string name="new_york">New York</string>
+    <string name="singapore">Singapore</string>
+    <string name="mumbai">Mumbai</string>
+    <string name="delhi">Delhi</string>
+    <string name="sydney">Sydney</string>
+    <string name="melbourne">Melbourne</string>
+    <string name="other_cities">Cities</string>
+    <string name="developer_information">Developer Information</string>
+    <string name="name">Developer</string>
+    <string name="apk_file">Apk</string>
+    <string name="cities">Weather Application</string>
+    <string name="weather">Weather of different cities</string>
+    <!-- to toggle the open close button of the navigation drawer -->
+    <string name="nav_open">Open</string>
+    <string name="nav_close">Close</string>
+    <string name="weather_app">Weather App</string>
+    <string name="home">Home</string>
+
+    <string name="permissionNotGranted">"Permission Not Granted!!!!"</string>
 </resources>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/home_item"
+        android:title="@string/home">
+        <menu>
+            <item
+                android:id="@+id/home"
+                android:checkable="true"
+                android:icon="@drawable/home"
+                android:title="@string/home"
+                app:showAsAction="ifRoom" />
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/main_item"
+        android:icon="@drawable/city"
+        android:title="@string/other_cities">
+        <menu>
+            <item
+                android:id="@+id/newYork"
+                android:checkable="true"
+                android:icon="@drawable/flag"
+                android:title="@string/new_york"
+                app:showAsAction="ifRoom" />
+            <item
+                android:id="@+id/singapore"
+                android:checkable="true"
+                android:icon="@drawable/flag"
+                android:title="@string/singapore"
+                app:showAsAction="ifRoom" />
+            <item
+                android:id="@+id/mumbai"
+                android:checkable="true"
+                android:icon="@drawable/flag"
+                android:title="@string/mumbai"
+                app:showAsAction="ifRoom" />
+            <item
+                android:id="@+id/delhi"
+                android:checkable="true"
+                android:icon="@drawable/flag"
+                android:title="@string/delhi"
+                app:showAsAction="ifRoom" />
+            <item
+                android:id="@+id/sydney"
+                android:checkable="true"
+                android:icon="@drawable/flag"
+                android:title="@string/sydney"
+                app:showAsAction="ifRoom" />
+            <item
+                android:id="@+id/melbourne"
+                android:checkable="true"
+                android:icon="@drawable/flag"
+                android:title="@string/melbourne"
+                app:showAsAction="ifRoom" />
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/labels_item"
+        android:icon="@drawable/developer"
+        android:title="@string/developer_information">
+        <menu>
+            <item
+                android:id="@+id/label_one"
+                android:checkable="true"
+                android:icon="@drawable/name"
+                android:title="@string/name"
+                app:showAsAction="ifRoom" />
+            <item
+                android:id="@+id/label_two"
+                android:checkable="true"
+                android:icon="@drawable/apk"
+                android:title="@string/apk_file"
+                app:showAsAction="ifRoom" />
+        </menu>
+    </item>
+
+
+</menu>

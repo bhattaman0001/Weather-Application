@@ -12,10 +12,10 @@ import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
 interface ApiHelper {
-    @GET("weather")
+    @GET("weather") /*current location*/
     fun getCurrentWeather(@Query("lat") lat: String?, @Query("lon") lon: String?, @Query("appid") apikey: String?): Call<JsonObject?>?
 
-    @GET("weather")
+    @GET("weather") /*by country*/
     fun getWeatherByCity(@Query("q") city: String?, @Query("appid") apikey: String?): Call<JsonObject?>?
 
     @GET("forecast")
@@ -23,11 +23,13 @@ interface ApiHelper {
 
     companion object {
         private val loggingInterceptor = HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY)
+
         private val builder = OkHttpClient.Builder()
             .readTimeout(30, TimeUnit.SECONDS)
             .connectTimeout(30, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .addInterceptor(loggingInterceptor)
+
         val apiHelper: ApiHelper = Retrofit.Builder()
             .baseUrl("https://api.openweathermap.org/data/2.5/")
             .addConverterFactory(GsonConverterFactory.create())
