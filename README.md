@@ -11,6 +11,6 @@
 ### - Provide internet connection to get latest data
 ## 5. ScreenShot
 <div style="display: flex; justify-content: space-between;">
-    <img src="https://github.com/bhattaman0001/power_house_ai/blob/develop/app/src/main/res/drawable/image1.jpg" alt="Image 1" style="width: 45%;">
     <img src="https://github.com/bhattaman0001/power_house_ai/blob/develop/app/src/main/res/drawable/image2.jpg" alt="Image 2" style="width: 45%;">
+    <img src="https://github.com/bhattaman0001/power_house_ai/blob/develop/app/src/main/res/drawable/image1.jpg" alt="Image 1" style="width: 45%;">
 </div>
