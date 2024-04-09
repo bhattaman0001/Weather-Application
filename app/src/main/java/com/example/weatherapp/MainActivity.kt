@@ -3,14 +3,12 @@ package com.example.weatherapp
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
-import android.graphics.PorterDuff
 import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
-import android.view.Menu
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -21,7 +19,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.graphics.drawable.DrawerArrowDrawable
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.drawerlayout.widget.DrawerLayout.SimpleDrawerListener
@@ -41,7 +38,6 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity(), MainInterface {
@@ -111,6 +107,8 @@ class MainActivity : AppCompatActivity(), MainInterface {
         })
 
         mainPresenter = MainPresenter(this)
+
+        binding.button.setOnClickListener { mainPresenter?.getCityWeather(binding.searchCity.text.toString()) }
     }
 
     private fun jsonStringToJsonObject(jsonString: String?): JsonObject? {
@@ -214,6 +212,7 @@ class MainActivity : AppCompatActivity(), MainInterface {
         editor.apply()
 
         weatherData?.let { hourWeatherData?.let { it1 -> weatherAdapter.updateData(it, it1) } }
+
         navigationView?.setNavigationItemSelectedListener { menuItem ->
             var city = menuItem.toString()
             when (city) {

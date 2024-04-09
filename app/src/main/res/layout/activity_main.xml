@@ -22,7 +22,43 @@
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"/>
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/searchCity"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="10dp"
+                    android:layout_weight="1"
+                    android:fontFamily="@font/roboto_slab"
+                    android:autofillHints=""
+                    android:background="#5EAFED"
+                    android:drawableStart="@drawable/search"
+                    android:drawablePadding="8dp"
+                    android:hint="Search City"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text"
+                    android:padding="10dp" />
+
+                <Button
+                    android:id="@+id/button"
+                    android:layout_weight="0.3"
+                    android:text="Search"
+                    android:fontFamily="@font/roboto_slab"
+                    android:layout_margin="10dp"
+                    android:backgroundTint="#5EAFED"
+                    android:padding="10dp"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content" />
+
+            </LinearLayout>
+
+        </androidx.appcompat.widget.Toolbar>
 
         <androidx.cardview.widget.CardView
             android:id="@+id/cardView"
