@@ -34,6 +34,10 @@ import com.example.weatherapp.presenter.Utils.isNetworkAvailable
 import com.example.weatherapp.presenter.Utils.sharedPreferences
 import com.example.weatherapp.view.adapter.WeatherAdapter
 import com.google.android.material.navigation.NavigationView
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.analytics.ktx.logEvent
+import com.google.firebase.ktx.Firebase
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import kotlinx.coroutines.CoroutineScope
@@ -56,59 +60,79 @@ class MainActivity : AppCompatActivity(), MainInterface {
     private lateinit var weatherAdapter: WeatherAdapter
     private var weatherData: JsonObject? = null
     private var hourWeatherData: JsonObject? = null
+    private lateinit var firebaseAnalytics: FirebaseAnalytics
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        drawerLayout = binding.drawerLayout
-        navigationView = binding.navigationView
-        toolbar = binding.toolbar
-        contentView = binding.content
-        sharedPreferences = applicationContext.getSharedPreferences(WEATHER_DATA, MODE_PRIVATE)
+        try {
+            firebaseAnalytics = Firebase.analytics
 
-        weatherAdapter = WeatherAdapter(this)
-        weatherAdapter.bind(binding.cardView)
+            firebaseAnalytics.logEvent(FirebaseAnalytics.Event.APP_OPEN){
+                param(FirebaseAnalytics.Param.CONTENT_TYPE, "app opened")
+            }
 
-        setSupportActionBar(toolbar)
+            drawerLayout = binding.drawerLayout
+            navigationView = binding.navigationView
+            toolbar = binding.toolbar
+            contentView = binding.content
+            sharedPreferences = applicationContext.getSharedPreferences(WEATHER_DATA, MODE_PRIVATE)
+            weatherAdapter = WeatherAdapter(this)
+            weatherAdapter.bind(binding.cardView)
 
-        val toggle = ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.nav_open, R.string.nav_close)
+            setSupportActionBar(toolbar)
 
-        drawerLayout?.addDrawerListener(toggle)
-        toggle.syncState()
+            val toggle = ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.nav_open, R.string.nav_close)
 
-        toolbar?.navigationIcon = DrawerArrowDrawable(this)
-        toolbar?.setNavigationOnClickListener {
-            if (navigationView?.let { drawerLayout?.isDrawerOpen(it) } == true) {
-                navigationView?.let { drawerLayout?.closeDrawer(it) }
-            } else {
-                navigationView?.let { drawerLayout?.openDrawer(it) }
+            drawerLayout?.addDrawerListener(toggle)
+            toggle.syncState()
+
+            toolbar?.navigationIcon = DrawerArrowDrawable(this)
+            toolbar?.setNavigationOnClickListener {
+                if (navigationView?.let { drawerLayout?.isDrawerOpen(it) } == true) {
+                    navigationView?.let { drawerLayout?.closeDrawer(it) }
+                } else {
+                    navigationView?.let { drawerLayout?.openDrawer(it) }
+                }
+            }
+
+            drawerLayout?.setScrimColor(Color.TRANSPARENT)
+            drawerLayout?.addDrawerListener(object : SimpleDrawerListener() {
+                override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+                    labelView?.visibility = if (slideOffset > 0) View.VISIBLE else View.GONE
+                    val diffScaledOffset: Float = slideOffset * (1 - scale)
+                    val offsetScale = 1 - diffScaledOffset
+                    contentView?.scaleX = offsetScale
+                    contentView?.scaleY = offsetScale
+                    val xOffset = drawerView.width * slideOffset
+                    val xOffsetDiff: Float = contentView!!.width * diffScaledOffset / 2
+                    val xTranslation = xOffset - xOffsetDiff
+                    contentView?.translationX = xTranslation
+                }
+
+                override fun onDrawerClosed(drawerView: View) {
+                    labelView?.visibility = View.GONE
+                }
+            })
+
+            mainPresenter = MainPresenter(this)
+
+            binding.button.setOnClickListener {
+                firebaseAnalytics.logEvent(FirebaseAnalytics.Event.SELECT_ITEM) {
+                    param(FirebaseAnalytics.Param.CONTENT_TYPE, "button")
+                    param(FirebaseAnalytics.Param.ITEM_ID, "search city weather")
+                }
+                mainPresenter?.getCityWeather(binding.searchCity.text.toString())
+            }
+        } catch (e: Exception) {
+            firebaseAnalytics.logEvent(FirebaseAnalytics.Event.APP_OPEN) {
+                param(FirebaseAnalytics.Param.ITEM_ID, "exception_id")
+                param(FirebaseAnalytics.Param.ITEM_NAME, "exception_name")
+                param(FirebaseAnalytics.Param.CONTENT_TYPE, "exception")
             }
         }
-
-        drawerLayout?.setScrimColor(Color.TRANSPARENT)
-        drawerLayout?.addDrawerListener(object : SimpleDrawerListener() {
-            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
-                labelView?.visibility = if (slideOffset > 0) View.VISIBLE else View.GONE
-                val diffScaledOffset: Float = slideOffset * (1 - scale)
-                val offsetScale = 1 - diffScaledOffset
-                contentView?.scaleX = offsetScale
-                contentView?.scaleY = offsetScale
-                val xOffset = drawerView.width * slideOffset
-                val xOffsetDiff: Float = contentView!!.width * diffScaledOffset / 2
-                val xTranslation = xOffset - xOffsetDiff
-                contentView?.translationX = xTranslation
-            }
-
-            override fun onDrawerClosed(drawerView: View) {
-                labelView?.visibility = View.GONE
-            }
-        })
-
-        mainPresenter = MainPresenter(this)
-
-        binding.button.setOnClickListener { mainPresenter?.getCityWeather(binding.searchCity.text.toString()) }
     }
 
     private fun jsonStringToJsonObject(jsonString: String?): JsonObject? {
@@ -124,6 +148,10 @@ class MainActivity : AppCompatActivity(), MainInterface {
 
     override fun onResume() {
         super.onResume()
+
+        firebaseAnalytics.logEvent("on resume"){
+            param("resume", "app in on resume")
+        }
 
         CoroutineScope(Dispatchers.Main).launch {
             if (isNetworkAvailable(this@MainActivity)) loadData()
@@ -198,6 +226,9 @@ class MainActivity : AppCompatActivity(), MainInterface {
         }
 
     override fun onGetCurrentWeatherSuccess(weatherData: JsonObject?) {
+        firebaseAnalytics.logEvent("onGetCurrentWeatherSuccess"){
+            param("onGetCurrentWeatherSuccess", "currentCityWeather")
+        }
         val editor = sharedPreferences.edit()
         editor.putString(CURRENT_CITY, weatherData?.get("name")?.asString)
         editor.apply()
@@ -205,7 +236,9 @@ class MainActivity : AppCompatActivity(), MainInterface {
     }
 
     override fun onGetHourWeatherSuccess(weatherData: JsonObject?, hourWeatherData: JsonObject?) {
-
+        firebaseAnalytics.logEvent("onGetHourWeatherSuccess"){
+            param("onGetHourWeatherSuccess", "getHourWeather")
+        }
         val editor = sharedPreferences.edit()
         editor.putString(LATEST_CURRENT_WEATHER_DATA, weatherData.toString())
         editor.putString(LATEST_CURRENT_HOUR_WEATHER_DATA, hourWeatherData.toString())
@@ -243,6 +276,9 @@ class MainActivity : AppCompatActivity(), MainInterface {
     }
 
     override fun setCurrentCity(weatherData: JsonObject?) {
+        firebaseAnalytics.logEvent("setCurrentCity"){
+            param("setCurrentCity", "set current city weather")
+        }
         val longitude = weatherData?.get("coord")?.asJsonObject?.get("lon")?.asString
         val latitude = weatherData?.get("coord")?.asJsonObject?.get("lat")?.asString
         mainPresenter?.getHourWeather(weatherData, latitude, longitude)

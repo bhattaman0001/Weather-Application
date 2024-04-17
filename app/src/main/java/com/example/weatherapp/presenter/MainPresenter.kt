@@ -1,21 +1,24 @@
 package com.example.weatherapp.presenter
 
 import com.example.weatherapp.network.ApiHelper
-import com.example.weatherapp.network.WeatherModel
-import com.example.weatherapp.presenter.Utils.LATEST_CURRENT_HOUR_WEATHER_DATA
-import com.example.weatherapp.presenter.Utils.LATEST_CURRENT_WEATHER_DATA
-import com.example.weatherapp.presenter.Utils.sharedPreferences
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.analytics.ktx.logEvent
+import com.google.firebase.ktx.Firebase
 import com.google.gson.JsonObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import kotlin.math.ceil
 
 class MainPresenter(private val mainInterface: MainInterface) {
     private var hourWeatherData: JsonObject? = null
     private var weatherData: JsonObject? = null
+    private var firebaseAnalytics: FirebaseAnalytics = Firebase.analytics
 
     fun getCurrentWeather(latitude: String?, longitude: String?) {
+        firebaseAnalytics.logEvent("getCurrentWeather"){
+            param("currentCity","current city weather")
+        }
         val call = ApiHelper.apiHelper.getCurrentWeather(latitude, longitude, API_KEY)
         call?.enqueue(object : Callback<JsonObject?> {
             override fun onResponse(call: Call<JsonObject?>, response: Response<JsonObject?>) {
@@ -31,6 +34,9 @@ class MainPresenter(private val mainInterface: MainInterface) {
     }
 
     fun getHourWeather(weatherData: JsonObject?, latitude: String?, longitude: String?) {
+        firebaseAnalytics.logEvent("getHourWeather"){
+            param("hourWeather","hour weather data")
+        }
         val call = ApiHelper.apiHelper.getHourWeather(latitude, longitude, API_KEY)
         call?.enqueue(object : Callback<JsonObject?> {
             override fun onResponse(call: Call<JsonObject?>, response: Response<JsonObject?>) {
@@ -46,6 +52,9 @@ class MainPresenter(private val mainInterface: MainInterface) {
     }
 
     fun getCityWeather(city: String?) {
+        firebaseAnalytics.logEvent("getCityWeather"){
+            param("cityWeather","city weather")
+        }
         val call = ApiHelper.apiHelper.getWeatherByCity(city, API_KEY)
         call?.enqueue(object : Callback<JsonObject?> {
             override fun onResponse(call: Call<JsonObject?>, response: Response<JsonObject?>) {

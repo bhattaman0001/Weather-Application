@@ -1,6 +1,5 @@
 package com.example.weatherapp.presenter
 
-import com.example.weatherapp.network.WeatherModel
 import com.google.gson.JsonObject
 
 interface MainInterface {

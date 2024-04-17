@@ -24,37 +24,37 @@
                 android:id="@+id/newYork"
                 android:checkable="true"
                 android:icon="@drawable/flag"
-                android:title="@string/new_york"
+                android:title="@string/jaipur"
                 app:showAsAction="ifRoom" />
             <item
                 android:id="@+id/singapore"
                 android:checkable="true"
                 android:icon="@drawable/flag"
-                android:title="@string/singapore"
+                android:title="@string/mumbai"
                 app:showAsAction="ifRoom" />
             <item
                 android:id="@+id/mumbai"
                 android:checkable="true"
                 android:icon="@drawable/flag"
-                android:title="@string/mumbai"
+                android:title="@string/kolkata"
                 app:showAsAction="ifRoom" />
             <item
                 android:id="@+id/delhi"
                 android:checkable="true"
                 android:icon="@drawable/flag"
-                android:title="@string/delhi"
+                android:title="@string/agra"
                 app:showAsAction="ifRoom" />
             <item
                 android:id="@+id/sydney"
                 android:checkable="true"
                 android:icon="@drawable/flag"
-                android:title="@string/sydney"
+                android:title="@string/hyderabad"
                 app:showAsAction="ifRoom" />
             <item
                 android:id="@+id/melbourne"
                 android:checkable="true"
                 android:icon="@drawable/flag"
-                android:title="@string/melbourne"
+                android:title="@string/shimla"
                 app:showAsAction="ifRoom" />
         </menu>
     </item>
